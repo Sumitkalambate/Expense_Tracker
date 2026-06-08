@@ -210,7 +210,7 @@ Werkzeug==3.1.8
 
 ## License
 
-This project is released under the [MIT License](LICENSE).
+This project is released under the [MIT License](LICENSE).-->
 
 <div align="center">
 💸 Expense Tracker Lite
@@ -332,7 +332,7 @@ Flask
 Flask-SQLAlchemy
 bcrypt
 Jinja2
-Werkzeug
+bcrypt
 Important Notes (Production)
 ❗ debug=True should be disabled in production
 🔑 Replace hardcoded SECRET_KEY with secure random value
@@ -352,7 +352,7 @@ This project is licensed under the MIT License.
 
 <div align="center">
 
-Built with Flask ❤️ | Secure Expense Tracking System | 2026
+Built with Flask  |  Expense Tracking System | 2026
 
 </div>
 
