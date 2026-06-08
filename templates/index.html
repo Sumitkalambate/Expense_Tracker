@@ -1,4 +1,4 @@
-g<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" class="h-full">
   <head>
     <meta charset="utf-8" />
@@ -15,14 +15,35 @@ g<!DOCTYPE html>
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
-  <body  class="bg-zinc-950 text-slate-100">
+  <body  class="bg-zinc-950 text-slate-100">    
     <main class="mx-auto max-w-6xl px-4 py-8">
-      <h1 class="text-3xl font-semibold mb-2">Dashboard</h1>
-      <p class="text-slate-400 mb-6">
-        Track spending, filter by date/category, and visualize instantly.
-      </p>
+  
+      <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-3xl font-semibold mb-2">Dashboard</h1>
+            <p class="text-slate-400">
+                Track spending, filter by date/category, and visualize instantly.
+            </p>
+        </div>
+        <a href="{{ url_for('logout') }}"
+          class="mt-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 px-4 py-2 border border-emerald-500/30">
+          Logout
+        </a>
+      </div>
+
+      <div>
+        {% with messages=get_flashed_messages() %}
+          {% if messages %}
+            {% for m in messages %}
+              <div class="mb-4 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm">
+                {{ m }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
 
       <!-- Filters + Add form -->
+      
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Filters -->
         <section
@@ -232,7 +253,7 @@ g<!DOCTYPE html>
                   <td class="px-4 py-2">{{e.category}}</td>
                   <td class="px-4 py-2 text-center">₹{{ "%.2f" | format(e.amount)}}</td>
                   <td class="px-4 py-2 text-right">
-                    <a class="text-amber-300 hover:text-amber-200 hover:bg-slate-700  border border-rose-400/30 px-3 py-1 rounded-lg"
+                    <a class="text-amber-300 hover:text-amber-200 hover:bg-slate-700  border border-amber-400/30 px-3 py-1 rounded-lg"
                        href="{{ url_for ('edit', exp_id=e.id) }}">Edit
                     </a>
                     

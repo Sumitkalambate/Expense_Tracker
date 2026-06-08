@@ -1,4 +1,6 @@
-from flask import Flask,render_template, request, redirect, url_for, make_response,flash,Response
+from flask import Flask,render_template, request, redirect, url_for, make_response, flash, Response
+from flask_login import UserMixin, LoginManager, login_required, login_user, logout_user,current_user
+import bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 from datetime import date,datetime
@@ -12,15 +14,37 @@ app.config['SECRET_KEY']= 'expense_my_secret_key'
 
 db = SQLAlchemy(app)
 
+#Login configuration
+login_manager = LoginManager() # Creates an object that will manage user login sessions. "Flask-Login, please handle logged-in users for my application."
+login_manager.init_app(app) # Attaches Flask-Login to your Flask application. Without this line, Flask-Login won't work with your app.
+
+login_manager.login_view = "login" #if user vists a home page without login it return a "login" route
+
 class Expense(db.Model):
-    id = db.Column(db.Integer,primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     description = db.Column(db.String(120), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     category = db.Column(db.String(20), nullable=False)
     date = db.Column(db.Date, nullable=False,default=date.today)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(100), nullable=False)
 
 with app.app_context():
     db.create_all()
+
+
+# user loader
+@login_manager.user_loader
+def load_user(user_id):
+    # Flask-Login stores the logged-in user's ID
+    # in the session. This function retrieves the
+    # corresponding User object from the database.  it enable current_user.id also current_user.username
+    return User.query.get(user_id)
+    
 
 categories=["Food","Transport","Health","Rent","Utilities"]
 
@@ -32,10 +56,86 @@ def parse_date_or_none(s:str):# this function converts a date(string) to date ob
     except ValueError:
         return None
 
+@app.route("/register", methods=['GET','POST'])
+def register():
+
+    if request.method == "POST":
+
+        #get username and password 
+        username = (request.form.get("username")or "").strip()
+        password = request.form.get("password")
+
+        # create a hash of password 
+        hash_password = bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8") # decode('utf-8') is used for conventer encrypted password store as string
+                          # means bcyrpt  give ib bytes e.g b'$23bd...'  but our database expect string
+        existing_user=User.query.filter_by(username=username).first()
+        if existing_user :
+            print("already")
+            flash("Username Already Exists")
+            return redirect(url_for("register"))
+        
+        user= User( 
+            username=username,
+            password_hash=hash_password
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        login_user(user)
+
+        flash("Successful Register !!! ")
+        return(redirect(url_for('home')))
+        
+    return render_template("register.html")
+
+@app.route("/login", methods=["GET", "POST"]) #  Flask expects two separate strings: not one ["GET, POST"]
+def login():
+    if request.method == "POST":
+        # print("Inside a Login post request")
+
+        #Take data from form
+        username = (request.form.get("username") or "").strip()
+        password =  request.form.get("password")
+
+        #take object(record) from user data base where username is match with username which write in database
+        user=User.query.filter_by(username=username).first()
+        # print(user)
+
+
+        # Check whether:
+        # 1. A user with the entered username exists.
+        # 2. The entered password matches the hashed password
+        #    stored in the database.
+        if user and bcrypt.checkpw(password.encode('utf-8'),user.password_hash.encode('utf-8')):
+            login_user(user)  # Create a login session and mark this user # as authenticated (logged in).
+            flash("Login Successfully !!!")                       
+            return redirect(url_for('home')) # After successful login, redirect the user to home page
+        
+        flash("Invalid Username and Password")
+        return redirect(url_for("login"))
+        
+    return render_template("login.html") # If the request is GET, or login fails, # show the login page again.  
+    
+
+
+@app.route("/logout")
+def logout():
+
+    logout_user()
+
+    return redirect(url_for('login'))
+
+
 
 @app.get("/")   # Run this function when user visits the home page "/"
+@login_required #If a user is not logged in: 1 Access is denied. 2 Flask redirects them to the login page.
 def home():
-
+    
+    
     # Filter part fetching a start and end date(in string)
     start_str=(request.args.get("start") or "").strip()
     end_str=(request.args.get("end") or "").strip()
@@ -54,7 +154,7 @@ def home():
 
    
 
-    q=Expense.query
+    q=Expense.query.filter_by( user_id = current_user.id)
 
     if start_date:
         q=q.filter(Expense.date >= start_date) #condition 1 
@@ -62,6 +162,7 @@ def home():
         q=q.filter(Expense.date <= end_date) #condition 2
     if category_str:
         q=q.filter(Expense.category == category_str) #condition 3
+    
     # take record that satisfy all three condition 
 
 
@@ -170,7 +271,7 @@ def add():
     category=(request.form.get("category")or"").strip()
 
     if not description or not amount_str or not date_str or not category :
-        flash("Please fill the information","error")
+        flash("Please fill the information")
 
     try:
         amount=float(amount_str)
@@ -178,7 +279,7 @@ def add():
             raise ValueError
         
     except ValueError:
-        flash("Amount must be positive (more that 1) ",'error')
+        flash("Amount must be positive (more that 1) ")
         return redirect(url_for("home"))
     
     # Try to convert the form date string into a Python date object
@@ -201,11 +302,11 @@ def add():
         # Use today's date as fallback
         d = date.today()
 
-    new_expense=Expense(description=description, amount=amount, category=category, date=d)
+    new_expense=Expense(description=description, amount=amount, category=category, date=d, user_id=current_user.id)
     db.session.add(new_expense)
     db.session.commit()
 
-    flash("Expense add",'success')
+    flash("Expense add")
 
 
     print("form received",dict(request.form))
@@ -221,6 +322,7 @@ def del_exp(id):
     db.session.commit()
 
     #return a user to home page
+    flash("Delete a recode")
     return redirect(url_for('home'))
 
 @app.route("/edit/<int:exp_id>", methods=['GET'])
@@ -241,8 +343,8 @@ def editRecord(id):
     date_str=(request.form.get("date") or "").strip()
     category=(request.form.get("category") or "").strip()
 
-    if description or not amount_str or not date_str or not category :
-        flash("Fill the all filed","error")
+    if description and not amount_str and not date_str and  not category :
+        flash("Fill the all filed")
 
     try :
         amount=float(amount_str)
@@ -267,7 +369,7 @@ def editRecord(id):
 
     db.session.commit()
 
-    flash("Record id update ", "success")
+    flash("Record id update ")
     
     return redirect(url_for("home"))
 
