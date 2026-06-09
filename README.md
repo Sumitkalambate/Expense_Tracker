@@ -62,7 +62,7 @@ Perfect for tracking personal spending without the bloat of enterprise finance t
 | **Templating** | Jinja2 | 3.1.6 |
 | **Styling** | Tailwind CSS | CDN |
 | **Charts** | Chart.js | CDN |
-| **WSGI Toolkit** | Werkzeug | 3.1.8 |
+
 
 ---
 
@@ -82,9 +82,6 @@ Expense_Tracker-main/
     └── edit.html           # Edit expense form (pre-populated fields)
 ```
 
-> **Note:** The `instance/` directory and `my_database.db` are created automatically on first run and excluded from version control.
-
----
 
 ## 💾 Data Model
 
@@ -161,7 +158,7 @@ Id  •  Date (DD-MM-YYYY)  •  Description  •  Category  •  Amount
 #### 1️⃣ Clone or extract the repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Sumitkalambate/Expense_Tracker.git
 cd Expense_Tracker-main
 ```
 
@@ -212,7 +209,7 @@ Jinja2==3.1.6
 MarkupSafe==3.0.3
 SQLAlchemy==2.0.50
 typing_extensions==4.15.0
-Werkzeug==3.1.8
+
 ```
 
 ---
