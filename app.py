@@ -72,6 +72,9 @@ def register():
         ).decode("utf-8") # decode('utf-8') is used for conventer encrypted password store as string
                           # means bcyrpt  give ib bytes e.g b'$23bd...'  but our database expect string
         existing_user=User.query.filter_by(username=username).first()
+        # Revelant SQL Query => select * from User 
+                                # where username==username
+                                # LIMIT 1;
         if existing_user :
             print("already")
             flash("Username Already Exists")
